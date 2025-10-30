@@ -11,7 +11,7 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                echo 'Creating virtual environment and installing dependencies...'
+                echo 'Setting up Python virtual environment...'
                 bat '''
                 python -m venv venv
                 call venv\\Scripts\\activate
@@ -21,14 +21,15 @@ pipeline {
             }
         }
 
-        stage('Run Flask App') {
+        stage('Run Flask App (Keep Alive)') {
             steps {
-                echo 'Starting Flask app on localhost:5000...'
+                echo 'Starting Flask app and keeping Jenkins running...'
                 bat '''
                 call venv\\Scripts\\activate
-                start /B python app.py
-                timeout /T 5
-                curl http://127.0.0.1:5000
+                start python app.py
+                echo Flask app started on http://127.0.0.1:5000
+                echo Press "Abort" in Jenkins to stop the pipeline.
+                timeout /t -1
                 '''
             }
         }
@@ -36,15 +37,16 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up...'
-            // Kill the Python process if still running
-            bat 'taskkill /F /IM python.exe || echo "No python process found"'
+            echo 'Cleaning up Flask app process...'
+            bat '''
+            taskkill /F /IM python.exe || echo No Python process found
+            '''
+        }
+        aborted {
+            echo 'Pipeline aborted — Flask server stopped.'
         }
         success {
-            echo 'Pipeline completed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed.'
+            echo 'Pipeline finished successfully.'
         }
     }
 }
