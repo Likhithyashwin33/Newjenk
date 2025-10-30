@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        PATH = "C:\\Program Files\\Docker\\Docker\\resources\\bin;${PATH}"
         IMAGE_NAME = "hello-world-flask"
         CONTAINER_NAME = "hello-world-container"
         PORT = "9001"
