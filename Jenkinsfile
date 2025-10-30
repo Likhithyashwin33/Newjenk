@@ -29,7 +29,7 @@ pipeline {
                 start /B python app.py
                 echo Flask app started on http://127.0.0.1:5000
                 echo Waiting for 120 seconds...
-                timeout /t 120 /nobreak
+                powershell -Command "Start-Sleep -Seconds 120"
                 '''
             }
         }
