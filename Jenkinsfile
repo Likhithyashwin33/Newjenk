@@ -27,6 +27,7 @@ pipeline {
                 bat '''
                 call venv\\Scripts\\activate
                 start python app.py
+                sleep 120
                 '''
             }
         }
