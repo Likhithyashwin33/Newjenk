@@ -11,18 +11,25 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                echo 'Installing dependencies...'
-                sh 'python3 -m venv venv'
-                sh '. venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt'
+                echo 'Creating virtual environment and installing dependencies...'
+                bat '''
+                python -m venv venv
+                call venv\\Scripts\\activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Run Flask App') {
             steps {
-                echo 'Running Flask app on localhost:5000...'
-                sh '. venv/bin/activate && nohup python app.py &'
-                sh 'sleep 5'  // Give it a few seconds to start
-                sh 'curl http://127.0.0.1:5000'  // Check if it responds
+                echo 'Starting Flask app on localhost:5000...'
+                bat '''
+                call venv\\Scripts\\activate
+                start /B python app.py
+                timeout /T 5
+                curl http://127.0.0.1:5000
+                '''
             }
         }
     }
@@ -30,7 +37,8 @@ pipeline {
     post {
         always {
             echo 'Cleaning up...'
-            sh 'pkill -f app.py || true'
+            // Kill the Python process if still running
+            bat 'taskkill /F /IM python.exe || echo "No python process found"'
         }
         success {
             echo 'Pipeline completed successfully!'
