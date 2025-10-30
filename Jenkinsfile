@@ -1,52 +1,67 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "hello-world-flask"
+        CONTAINER_NAME = "hello-world-container"
+        PORT = "9001"
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                echo 'Checking out source code...'
+                echo '📦 Checking out source code from Git...'
                 checkout scm
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Setting up Python virtual environment...'
-                bat '''
-                python -m venv venv
-                call venv\\Scripts\\activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
-                '''
+                echo "🐳 Building Docker image: ${IMAGE_NAME}"
+                script {
+                    // Remove old image if exists
+                    sh 'docker rmi -f ${IMAGE_NAME}:latest || true'
+                    // Build new image
+                    sh "docker build -t ${IMAGE_NAME}:latest ."
+                }
             }
         }
 
-        stage('Run Flask App (Keep Alive for 120s)') {
+        stage('Run Docker Container') {
             steps {
-                echo 'Starting Flask app and keeping Jenkins running for 120 seconds...'
-                bat '''
-                call venv\\Scripts\\activate
-                start /B python app.py
-                echo Flask app started on http://127.0.0.1:5000
-                echo Waiting for 120 seconds...
-                powershell -Command "Start-Sleep -Seconds 120"
-                '''
+                echo "🚀 Running Docker container: ${CONTAINER_NAME} on port ${PORT}"
+                script {
+                    // Stop and remove old container if it exists
+                    sh "docker rm -f ${CONTAINER_NAME} || true"
+                    // Run new container in background
+                    sh "docker run -d -p ${PORT}:${PORT} --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest"
+                }
+            }
+        }
+
+        stage('Wait for App (Preview)') {
+            steps {
+                echo "🌐 Waiting for app to stabilize (30s)... then open http://localhost:${PORT}"
+                script {
+                    sh 'sleep 30'
+                }
             }
         }
     }
 
     post {
         always {
-            echo 'Cleaning up Flask process...'
-            bat '''
-            taskkill /F /IM python.exe || echo No Python process found
-            '''
+            echo '🧹 Cleaning up old Docker containers...'
+            script {
+                // Stop the container if still running
+                sh "docker stop ${CONTAINER_NAME} || true"
+            }
         }
         success {
-            echo 'Pipeline completed successfully.'
+            echo "✅ Pipeline completed successfully! Visit http://localhost:${PORT}"
         }
         failure {
-            echo 'Pipeline failed.'
+            echo '❌ Pipeline failed. Check logs for details.'
         }
     }
 }
