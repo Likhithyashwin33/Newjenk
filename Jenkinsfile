@@ -21,16 +21,32 @@ pipeline {
             }
         }
 
-        stage('Run Flask App (Keep Alive)') {
+        stage('Run Flask App (Keep Alive for 120s)') {
             steps {
-                echo 'Starting Flask app and keeping Jenkins running...'
+                echo 'Starting Flask app and keeping Jenkins running for 120 seconds...'
                 bat '''
                 call venv\\Scripts\\activate
-                start python app.py
-                sleep 120
+                start /B python app.py
+                echo Flask app started on http://127.0.0.1:5000
+                echo Waiting for 120 seconds...
+                timeout /t 120 /nobreak
                 '''
             }
         }
     }
 
+    post {
+        always {
+            echo 'Cleaning up Flask process...'
+            bat '''
+            taskkill /F /IM python.exe || echo No Python process found
+            '''
+        }
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
 }
