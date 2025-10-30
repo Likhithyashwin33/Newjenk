@@ -27,26 +27,9 @@ pipeline {
                 bat '''
                 call venv\\Scripts\\activate
                 start python app.py
-                echo Flask app started on http://127.0.0.1:5000
-                echo Press "Abort" in Jenkins to stop the pipeline.
-                timeout /t -1
                 '''
             }
         }
     }
 
-    post {
-        always {
-            echo 'Cleaning up Flask app process...'
-            bat '''
-            taskkill /F /IM python.exe || echo No Python process found
-            '''
-        }
-        aborted {
-            echo 'Pipeline aborted — Flask server stopped.'
-        }
-        success {
-            echo 'Pipeline finished successfully.'
-        }
-    }
 }
